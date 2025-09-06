@@ -179,7 +179,7 @@ def fill_template2(post_uri, response_headers):
         output {{
             mask;
             base64url;
-            parameter "{client_header_values[0]}";
+            parameter "{client_header_values[0].replace('=', '-')}";
         }}
     }}
     server {{
@@ -373,4 +373,5 @@ except Exception as e:
 
 #replace_template(args.inprofile, args.outprofile, args.host, args.sleep, args.jitter, args.datajitter, args.useragent, args.spawnto, args.injection, args.library, args.syscall, args.beacongate, args.forwarder, args.url, args.geturi, args.posturi)
 # replace_template("sample.profile", args.outprofile, args.host, args.sleep, args.jitter, args.datajitter, args.useragent, args.spawnto, args.injection, args.library, args.syscall, args.beacongate, args.forwarder, args.url, args.geturi, args.posturi)
+
 replace_template("sample.profile", args.outprofile, args.sleep, args.jitter, args.datajitter, args.useragent, args.spawnto, args.injection, args.library, args.syscall, args.beacongate, args.forwarder, args.url, args.geturi, args.posturi)
