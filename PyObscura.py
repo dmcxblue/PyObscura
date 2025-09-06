@@ -95,19 +95,11 @@ def fill_template(get_url, response_headers):
     (server_header5_key, server_header5_value), (server_header6_key, server_header6_value) = server_headers
 
     # Replace Transfer-Encoding: chunked with X-Device-Type: desktop
-    def sanitize_header(key, value):
-        key_clean = key.strip().lower()
-        value_clean = str(value).strip().lower()
-        if key_clean == "transfer-encoding" and value_clean == "chunked":
-            return "X-Device-Type", "desktop"
-        return key, str(value).replace('=', '-').replace(';', '-').replace('"', '-')
+   def sanitize(val):
+        return str(val).replace('=', '-').replace(';', '-').replace('"', '-')
 
-    server_header1_key, server_header1_value = sanitize_header(server_header1_key, server_header1_value)
-    server_header2_key, server_header2_value = sanitize_header(server_header2_key, server_header2_value)
-    server_header3_key, server_header3_value = sanitize_header(server_header3_key, server_header3_value)
-    server_header4_key, server_header4_value = sanitize_header(server_header4_key, server_header4_value)
-    server_header5_key, server_header5_value = sanitize_header(server_header5_key, server_header5_value)
-    server_header6_key, server_header6_value = sanitize_header(server_header6_key, server_header6_value)
+    ch1_val = sanitize(client_header1_value)
+    ch2_val = sanitize(client_header2_value)
 
 
     # Build template
@@ -115,8 +107,8 @@ def fill_template(get_url, response_headers):
     set verb "POST";
     set uri "{uri}";
     client {{
-        header "{client_header1_key}" "{client_header1_value}";
-        header "{client_header2_key}" "{client_header2_value}";
+        header "{client_header1_key}" "{ch1_val}";
+        header "{client_header2_key}" "{ch2_val}";
         metadata {{
             mask;
             base64url;
@@ -395,6 +387,7 @@ except Exception as e:
 # replace_template("sample.profile", args.outprofile, args.host, args.sleep, args.jitter, args.datajitter, args.useragent, args.spawnto, args.injection, args.library, args.syscall, args.beacongate, args.forwarder, args.url, args.geturi, args.posturi)
 
 replace_template("sample.profile", args.outprofile, args.sleep, args.jitter, args.datajitter, args.useragent, args.spawnto, args.injection, args.library, args.syscall, args.beacongate, args.forwarder, args.url, args.geturi, args.posturi)
+
 
 
 
