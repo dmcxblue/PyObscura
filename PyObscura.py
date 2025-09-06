@@ -10,15 +10,41 @@ from urllib.parse import urljoin, urlparse
 import color  # Assumes a module named 'color' is available for colored output
 
 #############################################
+# Global Header Sanitizer
+#############################################
+
+def sanitize_client_header(key, value):
+    """
+    Sanitize client headers. Replaces risky characters and specific headers.
+    Extend this logic to catch more client-side evasion signatures.
+    """
+    key_clean = key.strip().lower()
+    value_clean = str(value).strip().lower()
+
+    # === Placeholder for future replacements ===
+    if key_clean == "transfer-encoding" and value_clean == "chunked":
+        return "X-Device-Type", "desktop"
+
+    if key_clean == "content-type" and value_clean == "text/html;charset=utf-8":
+        return key, "application/javascript; charset=utf-8"
+
+    # Add more header replacement logic here:
+    # if key_clean == "example" and value_clean == "badvalue":
+    #     return "Replaced-Header", "safevalue"
+
+    return key, str(value).replace('=', '-').replace(';', '-').replace('"', '-')
+
+
+
+#############################################
 # Dual Template Generation Functions Begin
 #############################################
 
 def get_random_user_agent():
-    # URL to fetch the JSON list of user agents.
     user_agents_url = "https://jnrbsn.github.io/user-agents/user-agents.json"
     try:
         response = requests.get(user_agents_url)
-        response.raise_for_status()  # Raise error for bad responses.
+        response.raise_for_status()
         user_agents = response.json()
         if isinstance(user_agents, list) and user_agents:
             return random.choice(user_agents)
@@ -29,10 +55,6 @@ def get_random_user_agent():
         return "CustomUserAgent/1.0"
 
 def split_into_chunks(value):
-    """
-    Splits the value at a semicolon near the middle.
-    Returns (chunk1, chunk2) where chunk1 ends with ';' if found.
-    """
     mid = len(value) // 2
     split_index = value.rfind(';', 0, mid+1)
     if split_index == -1:
@@ -56,7 +78,6 @@ def fill_template(get_url, response_headers):
     client_headers = fill_headers(header_list[:2], 2)
     server_headers = fill_headers(header_list[2:], 6)
 
-    # Highest value processing
     highest_header_value = max((str(v) for v in filtered.values()), key=len, default="")
     highest_header_value = highest_header_value[:500]
 
@@ -70,12 +91,6 @@ def fill_template(get_url, response_headers):
 
     parsed = urlparse(get_url)
     uri = parsed.path if parsed.path else "/"
-
-    # Sanitize and replace logic for CLIENT HEADERS ONLY
-    def sanitize_client_header(key, value):
-        if key.strip().lower() == "transfer-encoding" and str(value).strip().lower() == "chunked":
-            return "X-Device-Type", "desktop"
-        return key, str(value).replace('=', '-').replace(';', '-').replace('"', '-')
 
     client_header1_key, client_header1_value = sanitize_client_header(*client_headers[0])
     client_header2_key, client_header2_value = sanitize_client_header(*client_headers[1])
@@ -116,47 +131,39 @@ def fill_template(get_url, response_headers):
 }}'''
     return template
 
-
-
 def fill_template2(post_uri, response_headers):
-    """
-    Fills the POST template. Limits the highest header value to 500 bytes,
-    removes trailing tokens (using your snippet) if possible, and splits the result into two chunks.
-    """
     filtered = {k: v for k, v in response_headers.items() if "date" not in k.lower() and "time" not in k.lower()}
     header_list = list(filtered.items())
-    
+
     def fill_headers(lst, count):
         if len(lst) < count:
             lst.extend([("", "")] * (count - len(lst)))
         return lst[:count]
-    
+
     client_headers = fill_headers(header_list[:4], 4)
     server_headers = fill_headers(header_list[4:], 8)
-    
-    highest_header_value = ""
-    for _, value in filtered.items():
-        val_str = str(value)
-        if len(val_str) > len(highest_header_value):
-            highest_header_value = val_str
 
-    if len(highest_header_value) > 500:
-        highest_header_value = highest_header_value[:500]
-    # Remove trailing tokens using your snippet:
+    highest_header_value = max((str(v) for v in filtered.values()), key=len, default="")
+    highest_header_value = highest_header_value[:500]
+
     tokens = highest_header_value.split(';')
-    if len(tokens) > 1:
-        if len(tokens) > 3:
-            highest_header_value = ';'.join(tokens[:-5]).strip()
-        else:
-            highest_header_value = ';'.join(tokens[:-4]).strip()
-    
+    if len(tokens) > 3:
+        highest_header_value = ';'.join(tokens[:-5]).strip()
+    elif len(tokens) > 1:
+        highest_header_value = ';'.join(tokens[:-4]).strip()
+
     chunk1, chunk2 = split_into_chunks(highest_header_value)
-    
-    client_header_keys = [client_headers[i][0] for i in range(4)]
-    client_header_values = [client_headers[i][1] for i in range(4)]
+
+    client_header_keys = []
+    client_header_values = []
+    for i in range(4):
+        k, v = sanitize_client_header(*client_headers[i])
+        client_header_keys.append(k)
+        client_header_values.append(v)
+
     server_header_keys = [server_headers[i][0] for i in range(8)]
     server_header_values = [server_headers[i][1] for i in range(8)]
-    
+
     template = f'''http-post {{
     set verb "POST";
     set uri "{post_uri}";
@@ -173,7 +180,7 @@ def fill_template2(post_uri, response_headers):
         output {{
             mask;
             base64url;
-            parameter "{client_header_values[0].replace('=', '-').replace(';', '-').replace('"', '-')}";
+			parameter "{client_header_values[0].replace('=', '-').replace(';', '-').replace('"', '-')}";
         }}
     }}
     server {{
@@ -184,27 +191,22 @@ def fill_template2(post_uri, response_headers):
             append "{chunk2}";
             print;
         }}
-        header "{server_header_keys[0]}" "{server_header_values[0].replace('=', '-').replace(';', '-').replace('"', '-')}";
-        header "{server_header_keys[1]}" "{server_header_values[1].replace('=', '-').replace(';', '-').replace('"', '-')}";
-        header "{server_header_keys[2]}" "{server_header_values[2].replace('=', '-').replace(';', '-').replace('"', '-')}";
-        header "{server_header_keys[3]}" "{server_header_values[3].replace('=', '-').replace(';', '-').replace('"', '-')}";
-        header "{server_header_keys[4]}" "{server_header_values[4].replace('=', '-').replace(';', '-').replace('"', '-')}";
-        header "{server_header_keys[5]}" "{server_header_values[5].replace('=', '-').replace(';', '-').replace('"', '-')}";
-        header "{server_header_keys[6]}" "{server_header_values[6].replace('=', '-').replace(';', '-').replace('"', '-')}";
-        header "{server_header_keys[7]}" "{server_header_values[7].replace('=', '-').replace(';', '-').replace('"', '-')}";
+        header "{server_header_keys[0]}" "{server_header_values[0]}";
+        header "{server_header_keys[1]}" "{server_header_values[1]}";
+        header "{server_header_keys[2]}" "{server_header_values[2]}";
+        header "{server_header_keys[3]}" "{server_header_values[3]}";
+        header "{server_header_keys[4]}" "{server_header_values[4]}";
+        header "{server_header_keys[5]}" "{server_header_values[5]}";
+        header "{server_header_keys[6]}" "{server_header_values[6]}";
+        header "{server_header_keys[7]}" "{server_header_values[7]}";
     }}
 }}'''
     return template
 
-
 def generate_dual_templates(base_url, get_uri, post_uri):
-    """
-    Sends a GET and a POST request using the base URL, GET URI, and POST URI,
-    then returns the filled GET and POST templates along with the full URLs.
-    """
     get_url = urljoin(base_url, get_uri)
     post_url = urljoin(base_url, post_uri)
-    
+
     selected_user_agent = get_random_user_agent()
     custom_headers = {
         "User-Agent": selected_user_agent,
@@ -212,18 +214,19 @@ def generate_dual_templates(base_url, get_uri, post_uri):
         "Accept-Encoding": "gzip, deflate",
         "Connection": "close"
     }
-    
+
     try:
         get_response = requests.get(get_url, headers=custom_headers)
         get_template = fill_template(get_url, get_response.headers)
-        
+
         post_response = requests.post(post_url, headers=custom_headers)
         post_template = fill_template2(post_uri, post_response.headers)
-        
+
         return get_template, post_template, get_url, post_url
     except requests.RequestException as e:
         print(f"An error occurred while generating dual templates: {e}")
         return None
+
 
 #############################################
 # Dual Template Generation Functions End
