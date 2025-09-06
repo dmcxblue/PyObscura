@@ -96,8 +96,8 @@ def fill_template(get_url, response_headers):
     set verb "POST";
     set uri "{uri}";
     client {{
-        header "{client_header1_key}" "{client_header1_value.replace('=', '-').replace(';', '-').replace('"', '-')}";
-        header "{client_header2_key}" "{client_header2_value.replace('=', '-').replace(';', '-').replace('"', '-')}";
+        header "{client_header1_key}" "{client_header1_value}";
+        header "{client_header2_key}" "{client_header2_value}";
         metadata {{
             mask;
             base64url;
@@ -168,8 +168,8 @@ def fill_template2(post_uri, response_headers):
     set verb "POST";
     set uri "{post_uri}";
     client {{
-        header "{client_header_keys[0]}" "{client_header_values[0].replace('=', '-').replace(';', '-').replace('"', '-')}";
-        header "{client_header_keys[1]}" "{client_header_values[1].replace('=', '-').replace(';', '-').replace('"', '-')}";
+        header "{client_header_keys[0]}" "{client_header_values[0]}";
+        header "{client_header_keys[1]}" "{client_header_values[1]}";
         id {{
             mask;
             base64url;
@@ -377,4 +377,5 @@ except Exception as e:
 # replace_template("sample.profile", args.outprofile, args.host, args.sleep, args.jitter, args.datajitter, args.useragent, args.spawnto, args.injection, args.library, args.syscall, args.beacongate, args.forwarder, args.url, args.geturi, args.posturi)
 
 replace_template("sample.profile", args.outprofile, args.sleep, args.jitter, args.datajitter, args.useragent, args.spawnto, args.injection, args.library, args.syscall, args.beacongate, args.forwarder, args.url, args.geturi, args.posturi)
+
 
