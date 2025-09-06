@@ -96,8 +96,8 @@ def fill_template(get_url, response_headers):
     set verb "POST";
     set uri "{uri}";
     client {{
-        header "{client_header1_key}" "{client_header1_value}";
-        header "{client_header2_key}" "{client_header2_value}";
+        header "{client_header1_key}" "{client_header1_value.replace('=', '-').replace(';', '-').replace('"', '-')}";
+        header "{client_header2_key}" "{client_header2_value.replace('=', '-').replace(';', '-').replace('"', '-')}";
         metadata {{
             mask;
             base64url;
@@ -114,15 +114,16 @@ def fill_template(get_url, response_headers):
             append "{chunk2}";
             print;
         }}
-        header "{server_header1_key}" "{server_header1_value}";
-        header "{server_header2_key}" "{server_header2_value}";
-        header "{server_header3_key}" "{server_header3_value}";
-        header "{server_header4_key}" "{server_header4_value}";
-        header "{server_header5_key}" "{server_header5_value}";
-        header "{server_header6_key}" "{server_header6_value}";
+        header "{server_header1_key}" "{server_header1_value.replace('=', '-').replace(';', '-').replace('"', '-')}";
+        header "{server_header2_key}" "{server_header2_value.replace('=', '-').replace(';', '-').replace('"', '-')}";
+        header "{server_header3_key}" "{server_header3_value.replace('=', '-').replace(';', '-').replace('"', '-')}";
+        header "{server_header4_key}" "{server_header4_value.replace('=', '-').replace(';', '-').replace('"', '-')}";
+        header "{server_header5_key}" "{server_header5_value.replace('=', '-').replace(';', '-').replace('"', '-')}";
+        header "{server_header6_key}" "{server_header6_value.replace('=', '-').replace(';', '-').replace('"', '-')}";
     }}
 }}'''
     return template
+
 
 def fill_template2(post_uri, response_headers):
     """
@@ -167,8 +168,8 @@ def fill_template2(post_uri, response_headers):
     set verb "POST";
     set uri "{post_uri}";
     client {{
-        header "{client_header_keys[0]}" "{client_header_values[0]}";
-        header "{client_header_keys[1]}" "{client_header_values[1]}";
+        header "{client_header_keys[0]}" "{client_header_values[0].replace('=', '-').replace(';', '-').replace('"', '-')}";
+        header "{client_header_keys[1]}" "{client_header_values[1].replace('=', '-').replace(';', '-').replace('"', '-')}";
         id {{
             mask;
             base64url;
@@ -179,7 +180,7 @@ def fill_template2(post_uri, response_headers):
         output {{
             mask;
             base64url;
-            parameter "{client_header_values[0].replace('=', '-')}";
+            parameter "{client_header_values[0].replace('=', '-').replace(';', '-').replace('"', '-')}";
         }}
     }}
     server {{
@@ -190,17 +191,18 @@ def fill_template2(post_uri, response_headers):
             append "{chunk2}";
             print;
         }}
-        header "{server_header_keys[0]}" "{server_header_values[0]}";
-        header "{server_header_keys[1]}" "{server_header_values[1]}";
-        header "{server_header_keys[2]}" "{server_header_values[2]}";
-        header "{server_header_keys[3]}" "{server_header_values[3]}";
-        header "{server_header_keys[4]}" "{server_header_values[4]}";
-        header "{server_header_keys[5]}" "{server_header_values[5]}";
-        header "{server_header_keys[6]}" "{server_header_values[6]}";
-        header "{server_header_keys[7]}" "{server_header_values[7]}";
+        header "{server_header_keys[0]}" "{server_header_values[0].replace('=', '-').replace(';', '-').replace('"', '-')}";
+        header "{server_header_keys[1]}" "{server_header_values[1].replace('=', '-').replace(';', '-').replace('"', '-')}";
+        header "{server_header_keys[2]}" "{server_header_values[2].replace('=', '-').replace(';', '-').replace('"', '-')}";
+        header "{server_header_keys[3]}" "{server_header_values[3].replace('=', '-').replace(';', '-').replace('"', '-')}";
+        header "{server_header_keys[4]}" "{server_header_values[4].replace('=', '-').replace(';', '-').replace('"', '-')}";
+        header "{server_header_keys[5]}" "{server_header_values[5].replace('=', '-').replace(';', '-').replace('"', '-')}";
+        header "{server_header_keys[6]}" "{server_header_values[6].replace('=', '-').replace(';', '-').replace('"', '-')}";
+        header "{server_header_keys[7]}" "{server_header_values[7].replace('=', '-').replace(';', '-').replace('"', '-')}";
     }}
 }}'''
     return template
+
 
 def generate_dual_templates(base_url, get_uri, post_uri):
     """
@@ -375,3 +377,4 @@ except Exception as e:
 # replace_template("sample.profile", args.outprofile, args.host, args.sleep, args.jitter, args.datajitter, args.useragent, args.spawnto, args.injection, args.library, args.syscall, args.beacongate, args.forwarder, args.url, args.geturi, args.posturi)
 
 replace_template("sample.profile", args.outprofile, args.sleep, args.jitter, args.datajitter, args.useragent, args.spawnto, args.injection, args.library, args.syscall, args.beacongate, args.forwarder, args.url, args.geturi, args.posturi)
+
