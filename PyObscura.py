@@ -47,7 +47,7 @@ def split_into_chunks(value):
 def fill_template(get_url, response_headers):
     """
     Fills the GET template. Limits the highest header value to 500 bytes,
-    removes trailing tokens (using your snippet) if possible, and splits the result into two chunks.
+    removes trailing tokens, replaces chunked Transfer-Encoding, and sanitizes values.
     """
     # Filter out headers with keys containing "date" or "time".
     filtered = {k: v for k, v in response_headers.items() if "date" not in k.lower() and "time" not in k.lower()}
@@ -71,7 +71,8 @@ def fill_template(get_url, response_headers):
     # Limit to 500 bytes.
     if len(highest_header_value) > 500:
         highest_header_value = highest_header_value[:500]
-    # Remove trailing tokens using your snippet:
+
+    # Remove trailing tokens using your snippet
     tokens = highest_header_value.split(';')
     if len(tokens) > 1:
         if len(tokens) > 3:
@@ -79,19 +80,34 @@ def fill_template(get_url, response_headers):
         else:
             highest_header_value = ';'.join(tokens[:-4]).strip()
     
-    # Split the resulting string into two chunks.
+    # Split into two chunks
     chunk1, chunk2 = split_into_chunks(highest_header_value)
     
-    # Extract the URI path from the GET URL.
+    # Extract path from URL
     parsed = urlparse(get_url)
     uri = parsed.path if parsed.path else "/"
     
+    # Unpack client and server headers
     client_header1_key, client_header1_value = client_headers[0]
     client_header2_key, client_header2_value = client_headers[1]
     (server_header1_key, server_header1_value), (server_header2_key, server_header2_value), \
     (server_header3_key, server_header3_value), (server_header4_key, server_header4_value), \
     (server_header5_key, server_header5_value), (server_header6_key, server_header6_value) = server_headers
-    
+
+    # Replace Transfer-Encoding: chunked with X-Device-Type: desktop
+    def sanitize_header(key, value):
+        if key.lower() == "transfer-encoding" and value.lower() == "chunked":
+            return "X-Device-Type", "desktop"
+        return key, str(value).replace('=', '-').replace(';', '-').replace('"', '-')
+
+    server_header1_key, server_header1_value = sanitize_header(server_header1_key, server_header1_value)
+    server_header2_key, server_header2_value = sanitize_header(server_header2_key, server_header2_value)
+    server_header3_key, server_header3_value = sanitize_header(server_header3_key, server_header3_value)
+    server_header4_key, server_header4_value = sanitize_header(server_header4_key, server_header4_value)
+    server_header5_key, server_header5_value = sanitize_header(server_header5_key, server_header5_value)
+    server_header6_key, server_header6_value = sanitize_header(server_header6_key, server_header6_value)
+
+    # Build template
     template = f'''http-get {{
     set verb "POST";
     set uri "{uri}";
@@ -114,16 +130,15 @@ def fill_template(get_url, response_headers):
             append "{chunk2}";
             print;
         }}
-        header "{server_header1_key}" "{server_header1_value.replace('=', '-').replace(';', '-').replace('"', '-')}";
-        header "{server_header2_key}" "{server_header2_value.replace('=', '-').replace(';', '-').replace('"', '-')}";
-        header "{server_header3_key}" "{server_header3_value.replace('=', '-').replace(';', '-').replace('"', '-')}";
-        header "{server_header4_key}" "{server_header4_value.replace('=', '-').replace(';', '-').replace('"', '-')}";
-        header "{server_header5_key}" "{server_header5_value.replace('=', '-').replace(';', '-').replace('"', '-')}";
-        header "{server_header6_key}" "{server_header6_value.replace('=', '-').replace(';', '-').replace('"', '-')}";
+        header "{server_header1_key}" "{server_header1_value}";
+        header "{server_header2_key}" "{server_header2_value}";
+        header "{server_header3_key}" "{server_header3_value}";
+        header "{server_header4_key}" "{server_header4_value}";
+        header "{server_header5_key}" "{server_header5_value}";
+        header "{server_header6_key}" "{server_header6_value}";
     }}
 }}'''
     return template
-
 
 def fill_template2(post_uri, response_headers):
     """
@@ -377,5 +392,6 @@ except Exception as e:
 # replace_template("sample.profile", args.outprofile, args.host, args.sleep, args.jitter, args.datajitter, args.useragent, args.spawnto, args.injection, args.library, args.syscall, args.beacongate, args.forwarder, args.url, args.geturi, args.posturi)
 
 replace_template("sample.profile", args.outprofile, args.sleep, args.jitter, args.datajitter, args.useragent, args.spawnto, args.injection, args.library, args.syscall, args.beacongate, args.forwarder, args.url, args.geturi, args.posturi)
+
 
 
