@@ -45,11 +45,6 @@ def split_into_chunks(value):
         return value[:split_index], value[split_index:]
 
 def fill_template(get_url, response_headers):
-    """
-    Fills the GET template. Limits the highest header value to 500 bytes,
-    removes trailing tokens, replaces chunked Transfer-Encoding, and sanitizes values.
-    """
-    # Filter out headers with keys containing "date" or "time".
     filtered = {k: v for k, v in response_headers.items() if "date" not in k.lower() and "time" not in k.lower()}
     header_list = list(filtered.items())
 
@@ -61,61 +56,40 @@ def fill_template(get_url, response_headers):
     client_headers = fill_headers(header_list[:2], 2)
     server_headers = fill_headers(header_list[2:], 6)
 
-    # Choose the header with the longest value.
-    highest_header_value = ""
-    for _, value in filtered.items():
-        val_str = str(value)
-        if len(val_str) > len(highest_header_value):
-            highest_header_value = val_str
-
-    if len(highest_header_value) > 500:
-        highest_header_value = highest_header_value[:500]
+    # Highest value processing
+    highest_header_value = max((str(v) for v in filtered.values()), key=len, default="")
+    highest_header_value = highest_header_value[:500]
 
     tokens = highest_header_value.split(';')
-    if len(tokens) > 1:
-        if len(tokens) > 3:
-            highest_header_value = ';'.join(tokens[:-5]).strip()
-        else:
-            highest_header_value = ';'.join(tokens[:-4]).strip()
+    if len(tokens) > 3:
+        highest_header_value = ';'.join(tokens[:-5]).strip()
+    elif len(tokens) > 1:
+        highest_header_value = ';'.join(tokens[:-4]).strip()
 
     chunk1, chunk2 = split_into_chunks(highest_header_value)
 
     parsed = urlparse(get_url)
     uri = parsed.path if parsed.path else "/"
 
-    client_header1_key, client_header1_value = client_headers[0]
-    client_header2_key, client_header2_value = client_headers[1]
-    server_header_keys = [k for k, _ in server_headers]
-    server_header_values = [v for _, v in server_headers]
-
-    # Replace Transfer-Encoding: chunked with X-Device-Type: desktop
-    def sanitize_header(key, value):
-        key_clean = key.strip().lower()
-        value_clean = str(value).strip().lower()
-        if key_clean == "transfer-encoding" and value_clean == "chunked":
+    # Sanitize and replace logic for CLIENT HEADERS ONLY
+    def sanitize_client_header(key, value):
+        if key.strip().lower() == "transfer-encoding" and str(value).strip().lower() == "chunked":
             return "X-Device-Type", "desktop"
-        return key, value
+        return key, str(value).replace('=', '-').replace(';', '-').replace('"', '-')
 
-    # Sanitize only client values (not keys)
-    def sanitize(val):
-        return str(val).replace('=', '-').replace(';', '-').replace('"', '-')
+    client_header1_key, client_header1_value = sanitize_client_header(*client_headers[0])
+    client_header2_key, client_header2_value = sanitize_client_header(*client_headers[1])
 
-    ch1_val = sanitize(client_header1_value)
-    ch2_val = sanitize(client_header2_value)
+    (server_header1_key, server_header1_value), (server_header2_key, server_header2_value), \
+    (server_header3_key, server_header3_value), (server_header4_key, server_header4_value), \
+    (server_header5_key, server_header5_value), (server_header6_key, server_header6_value) = server_headers
 
-    # Apply Transfer-Encoding replacement
-    replaced_server_headers = [
-        sanitize_header(server_header_keys[i], server_header_values[i])
-        for i in range(6)
-    ]
-
-    # Build final template
     template = f'''http-get {{
     set verb "POST";
     set uri "{uri}";
     client {{
-        header "{client_header1_key}" "{ch1_val}";
-        header "{client_header2_key}" "{ch2_val}";
+        header "{client_header1_key}" "{client_header1_value}";
+        header "{client_header2_key}" "{client_header2_value}";
         metadata {{
             mask;
             base64url;
@@ -132,15 +106,16 @@ def fill_template(get_url, response_headers):
             append "{chunk2}";
             print;
         }}
-        header "{replaced_server_headers[0][0]}" "{replaced_server_headers[0][1]}";
-        header "{replaced_server_headers[1][0]}" "{replaced_server_headers[1][1]}";
-        header "{replaced_server_headers[2][0]}" "{replaced_server_headers[2][1]}";
-        header "{replaced_server_headers[3][0]}" "{replaced_server_headers[3][1]}";
-        header "{replaced_server_headers[4][0]}" "{replaced_server_headers[4][1]}";
-        header "{replaced_server_headers[5][0]}" "{replaced_server_headers[5][1]}";
+        header "{server_header1_key}" "{server_header1_value}";
+        header "{server_header2_key}" "{server_header2_value}";
+        header "{server_header3_key}" "{server_header3_value}";
+        header "{server_header4_key}" "{server_header4_value}";
+        header "{server_header5_key}" "{server_header5_value}";
+        header "{server_header6_key}" "{server_header6_value}";
     }}
 }}'''
     return template
+
 
 
 def fill_template2(post_uri, response_headers):
@@ -395,7 +370,3 @@ except Exception as e:
 # replace_template("sample.profile", args.outprofile, args.host, args.sleep, args.jitter, args.datajitter, args.useragent, args.spawnto, args.injection, args.library, args.syscall, args.beacongate, args.forwarder, args.url, args.geturi, args.posturi)
 
 replace_template("sample.profile", args.outprofile, args.sleep, args.jitter, args.datajitter, args.useragent, args.spawnto, args.injection, args.library, args.syscall, args.beacongate, args.forwarder, args.url, args.geturi, args.posturi)
-
-
-
-
