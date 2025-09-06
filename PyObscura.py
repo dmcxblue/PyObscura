@@ -96,7 +96,9 @@ def fill_template(get_url, response_headers):
 
     # Replace Transfer-Encoding: chunked with X-Device-Type: desktop
     def sanitize_header(key, value):
-        if key.lower() == "transfer-encoding" and value.lower() == "chunked":
+        key_clean = key.strip().lower()
+        value_clean = str(value).strip().lower()
+        if key_clean == "transfer-encoding" and value_clean == "chunked":
             return "X-Device-Type", "desktop"
         return key, str(value).replace('=', '-').replace(';', '-').replace('"', '-')
 
@@ -106,6 +108,7 @@ def fill_template(get_url, response_headers):
     server_header4_key, server_header4_value = sanitize_header(server_header4_key, server_header4_value)
     server_header5_key, server_header5_value = sanitize_header(server_header5_key, server_header5_value)
     server_header6_key, server_header6_value = sanitize_header(server_header6_key, server_header6_value)
+
 
     # Build template
     template = f'''http-get {{
@@ -392,6 +395,7 @@ except Exception as e:
 # replace_template("sample.profile", args.outprofile, args.host, args.sleep, args.jitter, args.datajitter, args.useragent, args.spawnto, args.injection, args.library, args.syscall, args.beacongate, args.forwarder, args.url, args.geturi, args.posturi)
 
 replace_template("sample.profile", args.outprofile, args.sleep, args.jitter, args.datajitter, args.useragent, args.spawnto, args.injection, args.library, args.syscall, args.beacongate, args.forwarder, args.url, args.geturi, args.posturi)
+
 
 
 
