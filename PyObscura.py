@@ -45,6 +45,11 @@ def split_into_chunks(value):
         return value[:split_index], value[split_index:]
 
 def fill_template(get_url, response_headers):
+    """
+    Fills the GET template. Limits the highest header value to 500 bytes,
+    removes trailing tokens, replaces chunked Transfer-Encoding, and sanitizes values.
+    """
+    # Filter out headers with keys containing "date" or "time".
     filtered = {k: v for k, v in response_headers.items() if "date" not in k.lower() and "time" not in k.lower()}
     header_list = list(filtered.items())
 
@@ -56,6 +61,7 @@ def fill_template(get_url, response_headers):
     client_headers = fill_headers(header_list[:2], 2)
     server_headers = fill_headers(header_list[2:], 6)
 
+    # Choose the header with the longest value.
     highest_header_value = ""
     for _, value in filtered.items():
         val_str = str(value)
@@ -82,22 +88,28 @@ def fill_template(get_url, response_headers):
     server_header_keys = [k for k, _ in server_headers]
     server_header_values = [v for _, v in server_headers]
 
-    # Hardcoded replacement for Transfer-Encoding: chunked (case/whitespace-insensitive)
-    replaced_server_headers = []
-    for k, v in zip(server_header_keys, server_header_values):
-        if k.strip().lower() == "transfer-encoding" and str(v).strip().lower() == "chunked":
-            replaced_server_headers.append(('X-Device-Type', 'desktop'))
-        else:
-            replaced_server_headers.append((k, v))
+    # Replace Transfer-Encoding: chunked with X-Device-Type: desktop
+    def sanitize_header(key, value):
+        key_clean = key.strip().lower()
+        value_clean = str(value).strip().lower()
+        if key_clean == "transfer-encoding" and value_clean == "chunked":
+            return "X-Device-Type", "desktop"
+        return key, value
 
-    # Sanitize only client headers
+    # Sanitize only client values (not keys)
     def sanitize(val):
         return str(val).replace('=', '-').replace(';', '-').replace('"', '-')
 
     ch1_val = sanitize(client_header1_value)
     ch2_val = sanitize(client_header2_value)
 
-    # Build template
+    # Apply Transfer-Encoding replacement
+    replaced_server_headers = [
+        sanitize_header(server_header_keys[i], server_header_values[i])
+        for i in range(6)
+    ]
+
+    # Build final template
     template = f'''http-get {{
     set verb "POST";
     set uri "{uri}";
@@ -129,6 +141,7 @@ def fill_template(get_url, response_headers):
     }}
 }}'''
     return template
+
 
 def fill_template2(post_uri, response_headers):
     """
@@ -382,10 +395,6 @@ except Exception as e:
 # replace_template("sample.profile", args.outprofile, args.host, args.sleep, args.jitter, args.datajitter, args.useragent, args.spawnto, args.injection, args.library, args.syscall, args.beacongate, args.forwarder, args.url, args.geturi, args.posturi)
 
 replace_template("sample.profile", args.outprofile, args.sleep, args.jitter, args.datajitter, args.useragent, args.spawnto, args.injection, args.library, args.syscall, args.beacongate, args.forwarder, args.url, args.geturi, args.posturi)
-
-
-
-
 
 
 
