@@ -95,7 +95,7 @@ def fill_template(get_url, response_headers):
     (server_header5_key, server_header5_value), (server_header6_key, server_header6_value) = server_headers
 
     # Replace Transfer-Encoding: chunked with X-Device-Type: desktop
-   def sanitize(val):
+    def sanitize(val):
         return str(val).replace('=', '-').replace(';', '-').replace('"', '-')
 
     ch1_val = sanitize(client_header1_value)
@@ -387,6 +387,7 @@ except Exception as e:
 # replace_template("sample.profile", args.outprofile, args.host, args.sleep, args.jitter, args.datajitter, args.useragent, args.spawnto, args.injection, args.library, args.syscall, args.beacongate, args.forwarder, args.url, args.geturi, args.posturi)
 
 replace_template("sample.profile", args.outprofile, args.sleep, args.jitter, args.datajitter, args.useragent, args.spawnto, args.injection, args.library, args.syscall, args.beacongate, args.forwarder, args.url, args.geturi, args.posturi)
+
 
 
 
